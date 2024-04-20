@@ -1,28 +1,37 @@
 use bevy_tasks::TaskPoolBuilder;
 
 const SIZE: usize = 10;
-const STENCIL_COUNT: usize = 3;
 
 fn main() {
     // Initialize the list
-    let mut vec = vec![0; SIZE * STENCIL_COUNT];
-    let mut output_vec = vec![0; SIZE];
+    let mut vec = vec![0; SIZE];
 
     for i in 0..vec.len() {
         vec[i] = i as i32;
     }
 
+
+    // Create handle
+    let mut vec_handle = I32VecHandle(&mut vec as I32VecPtr);
+
     // Initialize thread pool
     let threads = bevy_tasks::available_parallelism();
     let pool = TaskPoolBuilder::new().num_threads(threads).build();
 
-    // Perform stencil operation in parallel
-    // ===================================
-    // CODE GOES HERE
-    // ===================================
+    // Spawn threads
+    pool.scope(|s| {
+        for thread_index in 0..vec.len() {
+            s.spawn(async move {
+                // Get vec
+                let vec = vec_handle.get_mut();
+                // Perform map operation
+                vec[thread_index] = vec[thread_index] * vec[thread_index];
+            });
+        }
+    });
 
     // Verify the output
-    for element in output_vec {
+    for element in vec {
         println!("{:?}", element);
     }
 }
